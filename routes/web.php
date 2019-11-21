@@ -19,3 +19,7 @@ Route::get('/', function () {
 Route::get('/home', function() {
     return 'I am home';
 });
+
+Route::get('/test', function() {
+    return 'test';
+});
