@@ -27,9 +27,21 @@
 				:disable_input="disable_input"
 				:rows="rows"
 				:editing_id="editing_id"
+				:page_limit="page_limit"
+				:page_index="page_index"
+				:page_quantity="page_quantity"
+				:start_row_index="start_row_index"
+				:end_row_index="end_row_index"
+				:page_rows="page_rows"
 			/>
 			<categories-data-table-foot
 				:page_quantity="page_quantity"
+				:disable_input="disable_input"
+				:start_row_index="start_row_index"
+				:end_row_index="end_row_index"
+				:page_limit="page_limit"
+				@switchPage="switchPage"
+				@switchPageByNumber="switchPageByNumber"
 			/>
 		</table>
 	</section>
@@ -54,29 +66,81 @@ export default {
 	name : 'categories-data-table',
 	data() {
 		return {
-			rows            : [],
-			active          : false,
-			error_message   : '',
-			display_error   : false,
-			disable_input   : false,
-			editing_id      : null,
-			updated_row     : {
-				title       : '',
-				description : '',
+			rows             : [],
+			page_limit       : null,
+			page_quantity    : null,
+			active           : false,
+			error_message    : '',
+			display_error    : false,
+			disable_input    : false,
+			editing_id       : null,
+			page_index       : 0,
+			updated_row      : {
+				title        : '',
+				description  : '',
 			},
-			limit         : 10,
-			page_quantity : null,
+			start_row_index  : 0,
+			end_row_index    : 0,
+			page_rows        : [],
 		}
 	},
 	methods : {
+		switchPage(switch_type) {
+			this[switch_type]();
+		},
+		nextPage() {
+			this.start_row_index += this.page_limit;
+			this.end_row_index    = this.start_row_index + this.page_limit;
+			this.page_rows        = this.rows.slice(this.start_row_index, this.end_row_index);
+		},
+		previousPage() {
+			this.start_row_index -= this.page_limit;
+			this.end_row_index    = this.start_row_index + this.page_limit;
+			this.page_rows        = this.rows.slice(this.start_row_index, this.end_row_index);
+		},
+		lastPage() {
+			this.start_row_index = Math.floor((this.rows.length -1) / this.page_limit) * this.page_limit;
+			this.page_rows       = this.rows.slice(this.start_row_index);
+		},
+		firstPage() {
+			this.start_row_index  = 0;
+			this.end_row_index    =  this.page_limit;
+			this.page_rows        = this.rows.slice(this.start_row_index, this.end_row_index);
+		},
+		switchPageByNumber(number) {console.log(`NUmber is ${number}`)
+			console.log(`Page limit is ${this.page_limit}`);
+			console.log(`Page start * limit is ${Number(number) * this.page_limit}`);
+
+			this.start_row_index = Number(number) * this.page_limit;
+			this.end_row_index   = this.start_row_index + this.page_limit;
+			this.page_rows       = this.rows.slice(this.start_row_index, this.end_row_index);
+		},
+		setPageQuantity() {
+			const page_count   = Math.ceil(this.rows.length / this.page_limit);
+			this.page_quantity = page_count;
+		},
 		getRows() {
-			this.active = true;
+			this.page_limit       = 10;
+			this.start_row_index  = 0;
+			this.end_row_index    = this.page_limit;
+			this.pagination_limit = 5;
+			this.active           = true;
+
 			this.lockTable();
 
 			this.request('get', `${controller_url}/get`,
-			(response) => {console.log(response)
-				this.rows = response.data;
-				this.page_quantity = Math.ceil(this.rows.length / this.limit);
+			(response) => {
+				// this.rows = [...Array(22).keys()].map((el, index) => {
+				// 	return {
+				// 		id : index + 1,
+				// 		title : `title-${index + 1}-${Math.random().toString(36).substring(7)}`,
+				// 		description : `description-${index + 1}-${Math.random().toString(36).substring(7)}`,
+				// 	}
+				// });
+				this.rows      = response.data;
+				this.page_rows = this.rows.slice(this.start_row_index, this.end_row_index);
+
+				this.setPageQuantity();
 			},
 			(error) => {
 				console.log(error);
@@ -112,7 +176,11 @@ export default {
 				}
 
 				this.rows.unshift(response.data);
+				this.page_rows.unshift(response.data);
+				this.page_rows.pop();
 				this.$refs.table_head.clearInputs();
+
+				this.setPageQuantity();
 			},
 			(error) => {
 				console.log(error);
@@ -134,7 +202,7 @@ export default {
 			this.lockTable();
 			this.request('post', `${controller_url}/destroy/${id}`,
 			(response) => {
-				console.log(response)
+				this.setPageQuantity();
 			},
 			(error) => {
 				console.log(error);
@@ -156,11 +224,12 @@ export default {
 			}
 
 			this.active = true;
-			this.lockTable();
+			this.lockTable();console.log(id);console.log(this.updated_row)
 
 			this.request('post', `${controller_url}/update/${id}/${this.updated_row.title}/${this.updated_row.description}`,
 			(response) => {
 				this.display_error = false;
+				this.error_message = '';
 
 				if(response.data.error) {
 					this.display_error = true;
@@ -186,7 +255,9 @@ export default {
 			});
 		},
 		cancelEdit() {
-			this.editing_id = null;
+			this.editing_id    = null;
+			this.display_error = false;
+			this.error_message = '';
 		},
 		lockTable() {
 			this.disable_input = true;

@@ -71,16 +71,23 @@ class CategoryController extends Controller
 	 * @param Request $request object
 	 * @param Category $category model
 	 * @return string A json object containting the id, title and description
-	 * of the updated category
+	 * of the updated category or a string containing an error
 	 */
 	public function update(Request $request, Category $category)
 	{
-		if($this->categoryExists($request->title)) {
-			return response()->json([
-				'error' => 'Category title already exists, please try a different one.',
-			]);
+		$result     = $category::where('title', $request->title)->first();
+		$request_id = intval($request->segments()[2]);
+
+		if(!empty($result)) {
+			// This means item belongs to another record and not itself
+			if($request_id !== $result->id) {
+				return response()->json([
+					'error' => 'Category title already exists, please try a different one.',
+				]);
+			}
 		}
 
+		// This means we are updating row and not inserting dups
 		$category->title       = $request->title;
 		$category->description = $request->description;
 
