@@ -1,6 +1,6 @@
 <template>
 	<tbody>
-		<tr v-for="(row, row_index) in rows" :key="row.id">
+		<tr v-for="(row, row_index) in page_rows" :key="row.id">
 			<!-- input and data -->
 			<td v-if="editing_id === row.id" class="input-td">
 				<input
@@ -9,7 +9,7 @@
 					name="title"
 				>
 			</td>
-			<td v-else class="added-item">{{ row.title }}</td>
+			<td v-else class="added-item">{{ row_index+1 }}-->{{ row.title }}</td>
 
 			<td v-if="editing_id === row.id" class="input-td">
 				<input
@@ -57,9 +57,11 @@
 export default {
 	name : 'categories-data-table-body',
 	props : {
-		rows          : Array,
-		disable_input : Boolean,
-		editing_id    : Number,
+		disable_input   : Boolean,
+		editing_id      : Number,
+		page_rows       : Array,
+		// page_limit    : Number,
+		// page_index    : Number,
 	},
 	data() {
 		return {
@@ -71,7 +73,7 @@ export default {
 	methods : {
 		setRecordIndex(index) {
 			this.record_index = index;
-		}
+		},
 	},
 	watch : {
 		editing_id(new_id, old_id) {
@@ -115,7 +117,7 @@ export default {
 		description(val) {
 			this.$emit('updateDescription', val);
 		},
-	}
+	},
 }
 </script>
 
